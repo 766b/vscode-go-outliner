@@ -36,7 +36,6 @@ export class GoOutliner {
     }
 
     private getOutlineForWorkspace(): any {
-        console.log("Loading Data");
         cp.execFile("go-outliner", [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
             this.outlineJSON = JSON.parse(stdout);
             this._onDidChangeJSON.fire();
@@ -45,16 +44,19 @@ export class GoOutliner {
 
     public Funcs(): OutlineProvider {
         let d = this.outlineJSON.filter(x => x.type === "func" && !x.receiver);
+        vscode.commands.executeCommand('setContext', 'showGoOutlinerFuncs', d.length > 0);
         return new OutlineProvider(d);
     }
 
     public Variables(): OutlineProvider {
         let d = this.outlineJSON.filter(x => x.type === "var" || x.type === "const");
+        vscode.commands.executeCommand('setContext', 'showGoOutlinerVars', d.length > 0);
         return new OutlineProvider(d);
     }
 
     public Types(): OutlineProvider {
         let d = this.outlineJSON.filter(x => x.type === "type" || x.receiver);
+        vscode.commands.executeCommand('setContext', 'showGoOutlinerTypes', d.length > 0);
         return new OutlineProvider(d, "type");
     }
 }
@@ -71,11 +73,9 @@ export function goOutlinerInstalled(): Promise<boolean> {
 }
 
 export function installGoOutliner(): Promise<boolean> {
-    console.log("installing")
     return new Promise(resolve => {
         cp.execFile("go", ["get", "-u", "github.com/766b/go-outliner"], {}, (err, stdout, stderr) => {
             if (err || stderr) {
-                console.log(err, stderr)
                 return resolve(false);
             }
             return resolve(true);

@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Workspace is not set');
         return;
     }
-
+   
     const p = new GoOutliner(rootPath);
 
     goOutlinerInstalled().then(x => {
@@ -20,12 +20,12 @@ export function activate(context: vscode.ExtensionContext) {
                         if (x) {
                             p.Reload();
                         }
-                    })
+                    });
                 }
             });
         }
     });
-
+    
     p.onDidChangeJSON(e => {
         vscode.window.registerTreeDataProvider('typeView', p.Types());
         vscode.window.registerTreeDataProvider('funcView', p.Funcs());
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!editor) {
                 return;
             }
-            let pos = new vscode.Position(ref.line - 1, 0)
+            let pos = new vscode.Position(ref.line - 1, 0);
             editor.selection = new vscode.Selection(pos, pos);
             editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.AtTop);
         });

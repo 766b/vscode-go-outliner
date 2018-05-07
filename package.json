@@ -24,15 +24,18 @@
             "explorer": [
                 {
                     "id": "typeView",
-                    "name": "Types"
+                    "name": "Types",
+                    "when": "showGoOutlinerTypes"
                 },
                 {
                     "id": "funcView",
-                    "name": "Functions"
+                    "name": "Functions",
+                    "when": "showGoOutlinerFuncs"
                 },
                 {
                     "id": "varView",
-                    "name": "Variables"
+                    "name": "Variables",
+                    "when": "showGoOutlinerVars"
                 }
             ]
         }
