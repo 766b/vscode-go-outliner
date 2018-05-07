@@ -2,7 +2,7 @@
 
 Adds code outline views to the explorer for directories containing Go files
 
-![Preview](\images\preview.png "Go Outliner Preview")
+![Preview](https://github.com/766b/vscode-go-outliner/raw/master/images/preview.png "Go Outliner Preview")
 
 ## Requirements
 
