@@ -12,4 +12,4 @@ Go-Outliner package needs to be installed for this extension to work
 
 ## Release Notes
 
-[Change Log](CHANGELOG.md)
+[Change Log](https://github.com/766b/vscode-go-outliner/master/CHANGELOG.md)
