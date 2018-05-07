@@ -15,6 +15,10 @@
         "workspaceContains:*.go"
     ],
     "main": "./out/extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/766b/vscode-go-outliner.git"
+    },
     "contributes": {
         "views": {
             "explorer": [
