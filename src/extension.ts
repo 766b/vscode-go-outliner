@@ -13,17 +13,28 @@ export function activate(context: vscode.ExtensionContext) {
     const p = new GoOutliner(rootPath);
 
     goOutlinerInstalled().then(x => {
-        if (!x) {
-            vscode.window.showInformationMessage("Go-Outliner: Install Missing Tool", "Install").then(s => {
-                if (s === "Install") {
-                    installGoOutliner().then(x => {
-                        if (x) {
-                            p.Reload();
-                        }
-                    });
-                }
-            });
+        let opt: string = "Install";
+        switch (x) {
+            case -2: // Not installed
+                break;
+            case -1: // Older version installed
+                opt = "Update";
+                break;
+            default:
+                return;
         }
+
+        vscode.window.showInformationMessage(`Go-Outliner: ${opt} Package`, opt).then(s => {
+            if (s === "Install" || s === "Update") {
+                installGoOutliner().then(x => {
+                    if (x) {
+                        p.Reload();
+                    } else {
+                        vscode.window.showErrorMessage("Could not get go-outliner package.");
+                    }
+                });
+            }
+        });
     });
 
     p.onDidChangeJSON(e => {
@@ -45,7 +56,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     vscode.commands.registerCommand('extension.OutlinerOpenItem', (ref: OutlineJSON) => {
-        let f = vscode.Uri.parse(`file:///${ref.file}`);
+        let f = vscode.Uri.file(ref.file);
         vscode.commands.executeCommand("vscode.open", f).then(ok => {
             let editor = vscode.window.activeTextEditor;
             if (!editor) {

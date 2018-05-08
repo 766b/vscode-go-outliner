@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import { OutlineJSON } from './cmd';
-import * as path from 'path';
+import {join, dirname} from 'path';
 
 export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<GoOutlineItem | undefined> = new vscode.EventEmitter<GoOutlineItem | undefined>();
@@ -51,12 +51,12 @@ export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
     }
 }
 
-const iconsRootPath = path.join(path.dirname(__dirname), 'resources', 'icons');
+const iconsRootPath = join(dirname(__dirname), 'resources', 'icons');
 
 function getIcons(iconName: string): Object {
     return {
-        light: vscode.Uri.file(path.join(iconsRootPath, "light", `${iconName}.svg`)),
-        dark: vscode.Uri.file(path.join(iconsRootPath, "dark", `${iconName}.svg`))
+        light: vscode.Uri.file(join(iconsRootPath, "light", `${iconName}.svg`)),
+        dark: vscode.Uri.file(join(iconsRootPath, "dark", `${iconName}.svg`))
     };
 }
 

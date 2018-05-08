@@ -2,7 +2,7 @@
     "name": "go-outliner",
     "displayName": "Go Outliner",
     "description": "Go code outline explorer",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "publisher": "766b",
     "engines": {
         "vscode": "^1.23.0"

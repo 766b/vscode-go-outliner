@@ -1,6 +1,7 @@
 import cp = require('child_process');
 import * as vscode from 'vscode';
 import { OutlineProvider } from './provider';
+import { dirname } from 'path';
 
 export class OutlineJSON {
     label: string = "";
@@ -24,7 +25,7 @@ export class GoOutliner {
 
     public Reload(filepath?: string) {
         if (filepath) {
-            let path = filepath.substring(0, filepath.lastIndexOf("\\"));
+            let path = dirname(filepath);
             if (this.workspaceRoot !== path) {
                 this.workspaceRoot = path;
                 this.outlineJSON = Array<OutlineJSON>();
@@ -61,13 +62,14 @@ export class GoOutliner {
     }
 }
 
-export function goOutlinerInstalled(): Promise<boolean> {
+export function goOutlinerInstalled(): Promise<number> {
+    const minVersion = "Version 0.3.0";
     return new Promise(resolve => {
         cp.execFile("go-outliner", ["-version"], {}, (err, stdout, stderr) => {
             if (err || stderr) {
-                return resolve(false);
+                return resolve(-2);
             }
-            return resolve(true);
+            return resolve(semver(stdout, minVersion));
         });
     });
 }
@@ -81,4 +83,20 @@ export function installGoOutliner(): Promise<boolean> {
             return resolve(true);
         });
     });
+}
+
+function semver(a: string, b: string): number {
+    a = a.split(' ')[1];
+    b = b.split(' ')[1];
+    var pa = a.split('.');
+    var pb = b.split('.');
+    for (var i = 0; i < 3; i++) {
+        var na = Number(pa[i]);
+        var nb = Number(pb[i]);
+        if (na > nb) { return 1; }
+        if (nb > na) { return -1; }
+        if (!isNaN(na) && isNaN(nb)) { return 1; }
+        if (isNaN(na) && !isNaN(nb)) { return -1; }
+    }
+    return 0;
 }
