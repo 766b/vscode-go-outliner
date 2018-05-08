@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Workspace is not set');
         return;
     }
-   
+
     const p = new GoOutliner(rootPath);
 
     goOutlinerInstalled().then(x => {
@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
         }
     });
-    
+
     p.onDidChangeJSON(e => {
         vscode.window.registerTreeDataProvider('typeView', p.Types());
         vscode.window.registerTreeDataProvider('funcView', p.Funcs());

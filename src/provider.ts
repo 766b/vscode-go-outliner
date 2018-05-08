@@ -1,6 +1,7 @@
 
 import * as vscode from 'vscode';
 import { OutlineJSON } from './cmd';
+import * as path from 'path';
 
 export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<GoOutlineItem | undefined> = new vscode.EventEmitter<GoOutlineItem | undefined>();
@@ -50,22 +51,44 @@ export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
     }
 }
 
+const iconsRootPath = path.join(path.dirname(__dirname), 'resources', 'icons');
+
+function getIcons(iconName: string): Object {
+    return {
+        light: vscode.Uri.file(path.join(iconsRootPath, "light", `${iconName}.svg`)),
+        dark: vscode.Uri.file(path.join(iconsRootPath, "dark", `${iconName}.svg`))
+    };
+}
 
 export class GoOutlineItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
-        public ref: any,
+        public ref: OutlineJSON,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     ) {
         super(label, collapsibleState);
     }
 
+    get iconPath(): Object {
+        switch (this.ref.type) {
+            case "type":
+                return getIcons("class");
+            case "var":
+                return getIcons("field");
+            case "const":
+                return getIcons("constant");
+            case "func":
+                return getIcons("method");
+            default:
+                return getIcons("method");
+        }
+    }
     get command(): vscode.Command {
         return {
             title: "Open File",
             command: "extension.OutlinerOpenItem",
             arguments: [this.ref]
-        
+
         };
     }
 }
