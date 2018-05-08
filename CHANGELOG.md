@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.0.6 - 2018-05-08
+### Changed
+- Items are now sorted by label
+
+### Added
+- Config option to exclude *_test.go files from output result. Test files are excluded by default.
+
 ## 0.0.5 - 2018-05-08
 ### Changed
 - Fixed file path for vscode.open command to fix Linux issue

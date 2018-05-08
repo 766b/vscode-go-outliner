@@ -2,7 +2,7 @@
     "name": "go-outliner",
     "displayName": "Go Outliner",
     "description": "Go code outline explorer",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "publisher": "766b",
     "engines": {
         "vscode": "^1.23.0"
@@ -20,6 +20,17 @@
         "url": "https://github.com/766b/vscode-go-outliner.git"
     },
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Go Outliner Configuration",
+            "properties": {
+                "goOutliner.excludeTestFiles": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Do not include *_test.go files into output results"
+                }
+            }
+        },
         "views": {
             "explorer": [
                 {

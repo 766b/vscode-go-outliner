@@ -11,6 +11,12 @@ export class OutlineJSON {
     start: number = 0;
     end: number = 0;
     line: number = 0;
+
+    get isTestFile(): boolean { return this.file.toLowerCase().endsWith("_test.go"); }
+        
+    static fromObject(src: any) {
+        return Object.assign(new OutlineJSON(), src);
+    }
 }
 
 export class GoOutliner {
@@ -18,8 +24,14 @@ export class GoOutliner {
     readonly onDidChangeJSON: vscode.Event<GoOutliner | undefined> = this._onDidChangeJSON.event;
 
     public outlineJSON: OutlineJSON[] = Array<OutlineJSON>();
+    private exludeTestFiles: boolean = true;
 
     constructor(private workspaceRoot: string) {
+        this.exludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this.exludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
+            this._onDidChangeJSON.fire();
+        });
         this.getOutlineForWorkspace();
     }
 
@@ -38,25 +50,26 @@ export class GoOutliner {
 
     private getOutlineForWorkspace(): any {
         cp.execFile("go-outliner", [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
-            this.outlineJSON = JSON.parse(stdout);
+            this.outlineJSON = JSON.parse(stdout).map(OutlineJSON.fromObject);
+            this.outlineJSON.sort((a, b) => a.label.localeCompare(b.label));
             this._onDidChangeJSON.fire();
         });
     }
 
     public Funcs(): OutlineProvider {
-        let d = this.outlineJSON.filter(x => x.type === "func" && !x.receiver);
+        let d = this.outlineJSON.filter(x => !(this.exludeTestFiles && x.isTestFile) && x.type === "func" && !x.receiver);
         vscode.commands.executeCommand('setContext', 'showGoOutlinerFuncs', d.length > 0);
         return new OutlineProvider(d);
     }
 
     public Variables(): OutlineProvider {
-        let d = this.outlineJSON.filter(x => x.type === "var" || x.type === "const");
+        let d = this.outlineJSON.filter(x => !(this.exludeTestFiles && x.isTestFile) && x.type === "var" || x.type === "const");
         vscode.commands.executeCommand('setContext', 'showGoOutlinerVars', d.length > 0);
         return new OutlineProvider(d);
     }
 
     public Types(): OutlineProvider {
-        let d = this.outlineJSON.filter(x => x.type === "type" || x.receiver);
+        let d = this.outlineJSON.filter(x => !(this.exludeTestFiles && x.isTestFile) && x.type === "type" || x.receiver);
         vscode.commands.executeCommand('setContext', 'showGoOutlinerTypes', d.length > 0);
         return new OutlineProvider(d, "type");
     }

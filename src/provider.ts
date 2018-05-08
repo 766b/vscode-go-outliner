@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import { OutlineJSON } from './cmd';
-import {join, dirname} from 'path';
+import { join, dirname } from 'path';
 
 export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<GoOutlineItem | undefined> = new vscode.EventEmitter<GoOutlineItem | undefined>();
