@@ -1,94 +1,121 @@
 
+'use strict';
+
 import * as vscode from 'vscode';
-import { OutlineJSON } from './cmd';
-import { join, dirname } from 'path';
+import { Symbol, ItemType } from './symbol';
 
-export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<GoOutlineItem | undefined> = new vscode.EventEmitter<GoOutlineItem | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<GoOutlineItem | undefined> = this._onDidChangeTreeData.event;
+export enum ProviderType {
+    Main = "Main",
+    Tests = "Tests",
+    Benchmarks = "Benchmarks"
+}
 
-    constructor(public data: OutlineJSON[], public filter?: string) {
-        this.refresh();
-    }
+export class Provider implements vscode.TreeDataProvider<Symbol> {
+    private _onDidChangeTreeData: vscode.EventEmitter<Symbol | undefined> = new vscode.EventEmitter<Symbol | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<Symbol | undefined> = this._onDidChangeTreeData.event;
 
-    refresh(): void {
+    private excludeTestFiles: boolean = true;
+
+    constructor(private symbols: Symbol[], private providerType: ProviderType) {
+        vscode.commands.executeCommand('setContext', `showGoOutliner${providerType}View`, symbols.length > 0);
         this._onDidChangeTreeData.fire();
     }
 
-    getTreeItem(element: GoOutlineItem): vscode.TreeItem {
+    getTreeItem(element: Symbol): vscode.TreeItem {
         return element;
     }
 
-    getChildren(element?: GoOutlineItem): Thenable<GoOutlineItem[]> {
-        return new Promise(resolve => {
-            if (element) {
-                resolve(this.buildList(element.ref.label));
-            } else {
-                resolve(this.buildList());
+    rootItems(): Thenable<Symbol[]> {
+        let list = Array<Symbol>();
+        [ItemType.Type, ItemType.Func, ItemType.Var, ItemType.Const].forEach(e => {
+            if (this.countType(e) > 0) {
+                list.push(Symbol.NewRootItem(e));
             }
         });
+        return new Promise(resolve => resolve(list));
     }
 
-    buildList(receiver?: string): GoOutlineItem[] {
-        let list = Array<GoOutlineItem>();
-        this.data.forEach(i => {
-            if (receiver && receiver !== i.receiver) {
+    buildItemList(element?: Symbol): Thenable<Symbol[]> {
+        let list = Array<Symbol>();
+
+        switch (this.providerType) {
+            case ProviderType.Tests:
+                list = this.symbols;
+                break;
+            case ProviderType.Benchmarks:
+                list = this.symbols;
+                break;
+            default:
+                if (element) {
+                    if (element.rootType !== ItemType.None) {
+                        switch (element.rootType) {
+                            case ItemType.Type:
+                                list = this.symbols.filter(x => x.type === element.rootType && !x.receiver);
+                                list.map(x => {
+                                    x.collapsibleState = this.symbols.some(y => y.receiver === x.label) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+                                });
+                                break;
+                            case ItemType.Func:
+                                list = this.symbols.filter(x => x.type === element.rootType && !x.receiver);
+                                break;
+                            default:
+                                list = this.symbols.filter(x => x.type === element.rootType);
+                                break;
+                        }
+                    } else {
+                        list = this.symbols.filter(x => element.label === x.receiver);
+                    }
+                }
+                break;
+        }
+        return new Promise(resolve => resolve(list));
+    }
+
+    getChildren(element?: Symbol): Thenable<Symbol[]> {
+        if (!element && this.providerType === ProviderType.Main) {
+            return this.rootItems();
+        }
+        return this.buildItemList(element);
+
+        // if (element) {
+        //     if (element.rootType !== ItemType.None) {
+        //         switch (element.rootType) {
+        //             case ItemType.Type:
+        //                 list = this.symbols.filter(x => x.type === element.rootType && !x.receiver);
+        //                 list.map(x => {
+        //                     x.collapsibleState = this.symbols.some(y => y.receiver === x.label) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+        //                 });
+        //                 break;
+        //             case ItemType.Func:
+        //                 list = this.symbols.filter(x => x.type === element.rootType && !x.receiver);
+        //                 break;
+        //             default:
+        //                 list = this.symbols.filter(x => x.type === element.rootType);
+        //                 break;
+        //         }
+        //     } else {
+        //         list = this.symbols.filter(x => element.label === x.receiver);
+        //     }
+        // }
+        // return new Promise(resolve => resolve(list));
+    }
+
+    private countType(type: ItemType): number {
+        let num: number = 0;
+
+        this.symbols.forEach(x => {
+            // Skip functions that have receiver
+            if (type === ItemType.Func && x.receiver) {
                 return;
             }
-
-            switch (i.type) {
-                case "type":
-                    let collapsable = (this.data.some(x => x.receiver === i.label)) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
-                    list.push(new GoOutlineItem(i.label, i, collapsable));
-                    break;
-                default:
-                    if (receiver || this.filter !== "type") {
-                        list.push(new GoOutlineItem(i.label, i, vscode.TreeItemCollapsibleState.None));
-                    }
+            if (x.type === type) {
+                num++;
             }
         });
-        return list;
-    }
-}
-
-const iconsRootPath = join(dirname(__dirname), 'resources', 'icons');
-
-function getIcons(iconName: string): Object {
-    return {
-        light: vscode.Uri.file(join(iconsRootPath, "light", `${iconName}.svg`)),
-        dark: vscode.Uri.file(join(iconsRootPath, "dark", `${iconName}.svg`))
-    };
-}
-
-export class GoOutlineItem extends vscode.TreeItem {
-    constructor(
-        public readonly label: string,
-        public ref: OutlineJSON,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    ) {
-        super(label, collapsibleState);
+        return num;
     }
 
-    get iconPath(): Object {
-        switch (this.ref.type) {
-            case "type":
-                return getIcons("class");
-            case "var":
-                return getIcons("field");
-            case "const":
-                return getIcons("constant");
-            case "func":
-                return getIcons("method");
-            default:
-                return getIcons("method");
-        }
-    }
-    get command(): vscode.Command {
-        return {
-            title: "Open File",
-            command: "extension.OutlinerOpenItem",
-            arguments: [this.ref]
-
-        };
+    public dispose() {
+        this._onDidChangeTreeData.dispose();
     }
 }

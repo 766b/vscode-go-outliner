@@ -1,61 +1,49 @@
+
 'use strict';
 
 import * as vscode from 'vscode';
-import { GoOutliner, OutlineJSON, goOutlinerInstalled, installGoOutliner } from './cmd';
+import { AppExec, Terminal } from './app';
+import { Symbol } from './symbol';
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(ctx: vscode.ExtensionContext) {
     const rootPath = vscode.workspace.rootPath;
     if (!rootPath) {
         vscode.window.showErrorMessage('Workspace is not set');
         return;
     }
 
-    const p = new GoOutliner(rootPath);
+    ctx.subscriptions.push(registerCommands());
 
-    goOutlinerInstalled().then(x => {
-        let opt: string = "Install";
-        switch (x) {
-            case -2: // Not installed
-                break;
-            case -1: // Older version installed
-                opt = "Update";
-                break;
-            default:
-                return;
-        }
+    const app = new AppExec(rootPath);
 
-        vscode.window.showInformationMessage(`Go-Outliner: ${opt} Package`, opt).then(s => {
-            if (s === "Install" || s === "Update") {
-                installGoOutliner().then(x => {
-                    if (x) {
-                        p.Reload();
-                    } else {
-                        vscode.window.showErrorMessage("Could not get go-outliner package.");
-                    }
-                });
-            }
-        });
-    });
+    ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
+        app.Reload();
+    }));
 
-    p.onDidChangeJSON(e => {
-        vscode.window.registerTreeDataProvider('typeView', p.Types());
-        vscode.window.registerTreeDataProvider('funcView', p.Funcs());
-        vscode.window.registerTreeDataProvider('varView', p.Variables());
-    });
-
-    vscode.workspace.onDidSaveTextDocument(() => {
-        p.Reload();
-    });
-
-    vscode.window.onDidChangeActiveTextEditor(() => {
+    ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => {
         let e = vscode.window.activeTextEditor;
         if (!e) {
             return;
         }
-        p.Reload(e.document.fileName);
-    });
+        app.Reload(e.document.fileName);
+    }));
 
-    vscode.commands.registerCommand('extension.OutlinerOpenItem', (ref: OutlineJSON) => {
+    ctx.subscriptions.push(app.onDidChangeSymbols(() => {
+        vscode.window.registerTreeDataProvider('outlinerExplorerView', app.MainProvider());
+        vscode.window.registerTreeDataProvider('outlinerTestsView', app.TestsProvider());
+        vscode.window.registerTreeDataProvider('outlinerBenchmarksView', app.BenchmarksProvider());
+    }));
+}
+
+export function deactivate() {
+}
+
+function registerCommands(): vscode.Disposable {
+    let subscriptions: vscode.Disposable[] = [];
+    let terminal: Terminal = new Terminal();
+    
+    
+    subscriptions.push(vscode.commands.registerCommand('goOutliner.OpenItem', (ref: Symbol) => {
         let f = vscode.Uri.file(ref.file);
         vscode.commands.executeCommand("vscode.open", f).then(ok => {
             let editor = vscode.window.activeTextEditor;
@@ -66,9 +54,23 @@ export function activate(context: vscode.ExtensionContext) {
             editor.selection = new vscode.Selection(pos, pos);
             editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.AtTop);
         });
-    });
-}
+    }));
 
-export function deactivate() {
-}
+    subscriptions.push(vscode.commands.registerCommand('goOutliner.Test', (ref: Symbol) => {
+        terminal.TestFunc(ref.label);
+    }));
 
+    subscriptions.push(vscode.commands.registerCommand('goOutliner.TestAll', (ref: Symbol) => {
+        terminal.TestFunc();
+    }));
+
+    subscriptions.push(vscode.commands.registerCommand('goOutliner.Benchmark', (ref: Symbol) => {
+        terminal.BenchmarkFunc(ref.label);
+    }));
+
+    subscriptions.push(vscode.commands.registerCommand('goOutliner.BenchmarkAll', (ref: Symbol) => {
+        terminal.BenchmarkFunc();
+    }));
+
+    return vscode.Disposable.from(...subscriptions);
+}
