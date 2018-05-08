@@ -39,11 +39,11 @@ export class OutlineProvider implements vscode.TreeDataProvider<GoOutlineItem> {
             switch (i.type) {
                 case "type":
                     let collapsable = (this.data.some(x => x.receiver === i.label)) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
-                    list.push(new GoOutlineItem(`${i.type} ${i.label}`, i, collapsable));
+                    list.push(new GoOutlineItem(i.label, i, collapsable));
                     break;
                 default:
                     if (receiver || this.filter !== "type") {
-                        list.push(new GoOutlineItem(`${i.type} ${i.label}`, i, vscode.TreeItemCollapsibleState.None));
+                        list.push(new GoOutlineItem(i.label, i, vscode.TreeItemCollapsibleState.None));
                     }
             }
         });
