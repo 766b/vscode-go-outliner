@@ -115,7 +115,7 @@ function findFromPath(tool: string): string {
         paths.push(...envGoPath.split(path.delimiter));
     }
     if(process.platform === "darwin") {
-        let macHome = process.env("HOME");
+        let macHome = process.env["HOME"];
         if(macHome !== undefined) {
             paths.push(path.join(macHome, "go"));
         }
