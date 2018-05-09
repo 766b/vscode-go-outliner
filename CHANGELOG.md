@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.0.9 - 2018-05-08
+### Changed
+- MacOS binary look up fix
+
 ## 0.0.8 - 2018-05-08
 ### Changed
 - Fixed incorrect changes from 0.0.7

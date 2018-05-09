@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { OutlineProvider } from './provider';
 import path = require('path');
 import fs = require('fs');
+import { platform } from 'os';
 
 var goOutlinerPath: string = '';
 export const envPath = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
@@ -114,7 +115,12 @@ function findFromPath(tool: string): string {
     if(envGoPath !== undefined) {
         paths.push(...envGoPath.split(path.delimiter));
     }
-    
+    if(process.platform === "darwin") {
+        let macHome = process.env("HOME");
+        if(macHome !== undefined) {
+            paths.push(path.join(macHome, "go"));
+        }
+    }
     for (let i = 0; i < paths.length; i++) { 
         let dirs = paths[i].split(path.sep);
         let appendBin = dirs[dirs.length-1].toLowerCase() !== "bin";
