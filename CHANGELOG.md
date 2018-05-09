@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.0.7 - 2018-05-08
+### Changed
+- Added better handling of PATH and GOPATH lookups so related Go executabes can be found
+
 ## 0.0.6 - 2018-05-08
 ### Changed
 - Items are now sorted by label

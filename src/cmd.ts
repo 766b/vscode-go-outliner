@@ -1,7 +1,12 @@
 import cp = require('child_process');
 import * as vscode from 'vscode';
 import { OutlineProvider } from './provider';
-import { dirname } from 'path';
+import path = require('path');
+import fs = require('fs');
+
+var goOutlinerPath: string = '';
+export const envPath = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
+export const envGoPath = process.env['GOPATH'];
 
 export class OutlineJSON {
     label: string = "";
@@ -25,8 +30,10 @@ export class GoOutliner {
 
     public outlineJSON: OutlineJSON[] = Array<OutlineJSON>();
     private exludeTestFiles: boolean = true;
+    private toolPath: string = '';
 
     constructor(private workspaceRoot: string) {
+        this.toolPath = findFromPath("go-outliner");
         this.exludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
         vscode.workspace.onDidChangeConfiguration(() => {
             this.exludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
@@ -37,9 +44,9 @@ export class GoOutliner {
 
     public Reload(filepath?: string) {
         if (filepath) {
-            let path = dirname(filepath);
-            if (this.workspaceRoot !== path) {
-                this.workspaceRoot = path;
+            let workPath = path.dirname(filepath);
+            if (this.workspaceRoot !== workPath) {
+                this.workspaceRoot = workPath;
                 this.outlineJSON = Array<OutlineJSON>();
                 this.getOutlineForWorkspace();
             }
@@ -49,7 +56,11 @@ export class GoOutliner {
     }
 
     private getOutlineForWorkspace(): any {
-        cp.execFile("go-outliner", [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
+        if (this.toolPath === '') {
+            return;
+        }
+
+        cp.execFile(this.toolPath, [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
             this.outlineJSON = JSON.parse(stdout).map(OutlineJSON.fromObject);
             this.outlineJSON.sort((a, b) => a.label.localeCompare(b.label));
             this._onDidChangeJSON.fire();
@@ -76,15 +87,47 @@ export class GoOutliner {
 }
 
 export function goOutlinerInstalled(): Promise<number> {
+    if (goOutlinerPath === '') {
+        goOutlinerPath = findFromPath("go-outliner");
+    }
+
     const minVersion = "Version 0.3.0";
     return new Promise(resolve => {
-        cp.execFile("go-outliner", ["-version"], {}, (err, stdout, stderr) => {
+        if (goOutlinerPath === '') { 
+            return resolve(-2);
+        }
+        cp.execFile(goOutlinerPath, ["-version"], {}, (err, stdout, stderr) => {
             if (err || stderr) {
                 return resolve(-2);
             }
             return resolve(semver(stdout, minVersion));
         });
     });
+}
+
+function findFromPath(tool: string): string {
+    let toolFileName = (process.platform === 'win32') ? `${tool}.exe` : tool;
+    let paths: string[] = envPath.split(path.delimiter);
+    paths.push(...envGoPath.split(path.delimiter));
+
+    for (let i = 0; i < paths.length; i++) { 
+
+        let dirs = paths[i].split(path.sep);
+        let appendBin = dirs[dirs.length-1].toLowerCase() !== "bin";
+        let filePath = path.join(paths[i], appendBin ? 'bin' : '', toolFileName);
+        if (fileExists(filePath)) {
+            return filePath;
+        }
+    }
+    return "";
+}
+
+function fileExists(filePath: string): boolean {
+	try {
+		return fs.statSync(filePath).isFile();
+	} catch (e) {
+		return false;
+	}
 }
 
 export function installGoOutliner(): Promise<boolean> {
