@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.13 - 2018-05-09
+### Changed
+- Fixed issue where working directory is incorrectly resolved to its parent folder.
+
 ## 0.1.12 - 2018-05-08
 ### Changed
 - Moved UI to separate tab

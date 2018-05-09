@@ -120,7 +120,10 @@ export class AppExec {
 
     public Reload(filepath?: string) {
         if (filepath) {
-            let newWorkingDirectory = dirname(filepath);
+            let newWorkingDirectory: string = filepath;
+            if(fileExists(filepath)) {
+                newWorkingDirectory = dirname(filepath);
+            }
             if (this.workspaceRoot !== newWorkingDirectory) {
                 this.terminal.Channel(`Chaning working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`)
                 this.workspaceRoot = newWorkingDirectory;
