@@ -107,11 +107,15 @@ export function goOutlinerInstalled(): Promise<number> {
 
 function findFromPath(tool: string): string {
     let toolFileName = (process.platform === 'win32') ? `${tool}.exe` : tool;
-    let paths: string[] = envPath.split(path.delimiter);
-    paths.push(...envGoPath.split(path.delimiter));
-
+    let paths: string[] = [];
+    if(envPath !== undefined) {
+        paths.push(...envPath.split(path.delimiter));
+    }
+    if(envGoPath !== undefined) {
+        paths.push(...envGoPath.split(path.delimiter));
+    }
+    
     for (let i = 0; i < paths.length; i++) { 
-
         let dirs = paths[i].split(path.sep);
         let appendBin = dirs[dirs.length-1].toLowerCase() !== "bin";
         let filePath = path.join(paths[i], appendBin ? 'bin' : '', toolFileName);
