@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { OutlineProvider } from './provider';
 import path = require('path');
 import fs = require('fs');
-import { platform } from 'os';
 
 var goOutlinerPath: string = '';
 export const envPath = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
