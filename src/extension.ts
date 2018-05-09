@@ -11,10 +11,11 @@ export function activate(ctx: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Workspace is not set');
         return;
     }
+    let terminal: Terminal = new Terminal();
+    ctx.subscriptions.push(terminal);
+    ctx.subscriptions.push(registerCommands(terminal));
 
-    ctx.subscriptions.push(registerCommands());
-
-    const app = new AppExec(rootPath);
+    const app = new AppExec(rootPath, terminal);
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
         app.Reload();
@@ -38,11 +39,9 @@ export function activate(ctx: vscode.ExtensionContext) {
 export function deactivate() {
 }
 
-function registerCommands(): vscode.Disposable {
+function registerCommands(terminal: Terminal): vscode.Disposable {
     let subscriptions: vscode.Disposable[] = [];
-    let terminal: Terminal = new Terminal();
-    
-    
+       
     subscriptions.push(vscode.commands.registerCommand('goOutliner.OpenItem', (ref: Symbol) => {
         let f = vscode.Uri.file(ref.file);
         vscode.commands.executeCommand("vscode.open", f).then(ok => {

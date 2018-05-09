@@ -2,8 +2,9 @@
 'use strict';
 
 import cp = require('child_process');
+import fs = require('fs');
 
-export function semver(a: string, b: string): number {
+export function semVer(a: string, b: string): number {
     a = a.split(' ')[1];
     b = b.split(' ')[1];
     var pa = a.split('.');
@@ -19,6 +20,14 @@ export function semver(a: string, b: string): number {
     return 0;
 }
 
+export function fileExists(filePath: string): boolean {
+	try {
+		return fs.statSync(filePath).isFile();
+	} catch (e) {
+		return false;
+	}
+}
+
 export function goOutlinerInstalled(): Promise<number> {
     const minVersion = "Version 0.3.0";
     return new Promise(resolve => {
@@ -26,7 +35,7 @@ export function goOutlinerInstalled(): Promise<number> {
             if (err || stderr) {
                 return resolve(-2);
             }
-            return resolve(semver(stdout, minVersion));
+            return resolve(semVer(stdout, minVersion));
         });
     });
 }

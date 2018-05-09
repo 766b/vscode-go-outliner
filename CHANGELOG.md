@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
-## 0.1.6 - 2018-05-08
+## 0.1.7 - 2018-05-08
 ### Changed
 - Moved UI to separate tab
 
@@ -9,6 +9,10 @@ All notable changes to the "go-outliner" extension will be documented in this fi
 - Tests/Benchmarks view added
     - Test/Benchmark specific function command added
     - Test/Benchmark all functions command added
+
+## 0.0.7 - 2018-05-08
+### Changed
+- Added better handling of PATH and GOPATH lookups so related Go executabes can be found
 
 ## 0.0.6 - 2018-05-08
 ### Changed
