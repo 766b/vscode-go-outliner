@@ -14,7 +14,7 @@ export class Provider implements vscode.TreeDataProvider<Symbol> {
     private _onDidChangeTreeData: vscode.EventEmitter<Symbol | undefined> = new vscode.EventEmitter<Symbol | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Symbol | undefined> = this._onDidChangeTreeData.event;
 
-    private excludeTestFiles: boolean = true;
+    // private excludeTestFiles: boolean = true;
 
     constructor(private symbols: Symbol[], private providerType: ProviderType) {
         vscode.commands.executeCommand('setContext', `showGoOutliner${providerType}View`, symbols.length > 0);

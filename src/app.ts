@@ -4,7 +4,6 @@ import { Symbol, ItemType } from './symbol';
 import { dirname } from 'path';
 import { Provider, ProviderType } from './provider';
 import path = require('path');
-import fs = require('fs');
 import { fileExists } from './util';
 
 enum TerminalName {
@@ -16,10 +15,19 @@ enum TerminalName {
 export class Terminal {
     private _terminalTesting: any;
     private _terminalBenchmarks: any;
-    private _terminalChannel: vscode.OutputChannel = vscode.window.createOutputChannel(TerminalName.Channel);
+    private _terminalChannel: any = undefined;
     private _disposable: vscode.Disposable;
+    private _enableDebugChannel: boolean = false;
 
     constructor() {
+        this._enableDebugChannel = vscode.workspace.getConfiguration('goOutliner').get('enableDebugChannel', false);
+        //TODO: Add to disposable
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this._enableDebugChannel = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
+            this.toggleChannel()
+        });
+        this.toggleChannel();
+
         this._disposable = vscode.window.onDidCloseTerminal(x => {
             switch (x.name) {
                 case TerminalName.Testing:
@@ -30,6 +38,17 @@ export class Terminal {
                     break;
             }
         });
+    }
+
+    private toggleChannel() {
+        if(this._enableDebugChannel && !this._terminalChannel) {
+            this._terminalChannel = vscode.window.createOutputChannel(TerminalName.Channel);
+            return;
+        }
+
+        if(!this._enableDebugChannel && this._terminalChannel) {
+            this.TerminalChannel.dispose();
+        }
     }
 
     get TerminalChannel(): vscode.OutputChannel {
@@ -63,13 +82,21 @@ export class Terminal {
     }
 
     public Channel(msg: string) {
+        if (!this._enableDebugChannel) {
+            return;
+        }
         this.TerminalChannel.appendLine(msg);
+    }
+
+    public ChannelWithInformationMessage(msg: string) {
+        vscode.window.showInformationMessage(msg);
+        this.Channel(msg);
     }
 
     public dispose() {
         this._terminalTesting.dispose();
         this._terminalBenchmarks.dispose();
-        this._terminalChannel.dispose();
+        if (this._terminalChannel) { this._terminalChannel.dispose(); }
         this._disposable.dispose();
     }
 }
@@ -79,6 +106,7 @@ export class AppExec {
     readonly onDidChangeSymbols: vscode.Event<Symbol | undefined> = this._onDidChangeSymbols.event;
 
     public symbols: Symbol[] = Array<Symbol>();
+    public binPathCache: Map<string, string> = new Map();
 
     private excludeTestFiles: boolean = true;
 
@@ -106,9 +134,14 @@ export class AppExec {
     }
 
     private getOutlineForWorkspace(): any {
-        cp.execFile(`go-outliner`, [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
+        let bin = this.findToolFromPath("go-outliner");
+        if (!bin) {
+            return;
+        }
+        cp.execFile(bin, [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
             this.symbols = JSON.parse(stdout).map(Symbol.fromObject);
             this.symbols.sort((a, b) => a.label.localeCompare(b.label));
+            this.terminal.Channel(`Reading directory: ${this.workspaceRoot}; Results: ${this.symbols.length}`);
             this._onDidChangeSymbols.fire();
         });
     }
@@ -137,12 +170,13 @@ export class AppExec {
                     }
                 });
             }
-        })
+        });
     }
 
     private installTool(name: string) {
         let bin: string = this.findToolFromPath("go");
-        if(bin === "") {
+        if (bin === "") {
+            this.terminal.Channel("Could not find Go binary");
             vscode.window.showErrorMessage("Go Outliner: Could not find Go binary");
             return;
         }
@@ -167,22 +201,38 @@ export class AppExec {
     }
 
     private findToolFromPath(tool: string): string {
-        let pathEnv = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
-        let goPathEnv = process.env['GOPATH'];
+        let cachedPath: any = this.binPathCache.get(tool);
+        if (cachedPath) {
+            return cachedPath;
+        }
 
         let toolFileName = (process.platform === 'win32') ? `${tool}.exe` : tool;
-        let paths: string[] = pathEnv.split(path.delimiter);
-        paths.push(...goPathEnv.split(path.delimiter));
+        let pathEnv = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
+        let goPathEnv = process.env['GOPATH'];
+        let macHomeEnv = process.env['HOME'];
+
+        let paths: string[] = [];
+        if (pathEnv !== undefined) {
+            paths.push(...pathEnv.split(path.delimiter));
+        }
+        if (goPathEnv !== undefined) {
+            paths.push(...goPathEnv.split(path.delimiter));
+        }
+        if (macHomeEnv !== undefined) {
+            paths.push(path.join(macHomeEnv, "go"));
+        }
 
         for (let i = 0; i < paths.length; i++) {
-
             let dirs = paths[i].split(path.sep);
             let appendBin = dirs[dirs.length - 1].toLowerCase() !== "bin";
             let filePath = path.join(paths[i], appendBin ? 'bin' : '', toolFileName);
             if (fileExists(filePath)) {
+                this.terminal.Channel(`Found "${tool}" at ${filePath}`);
+                this.binPathCache.set(tool, filePath);
                 return filePath;
             }
         }
+        this.terminal.Channel(`Could not find "${tool}"`);
         return "";
     }
 

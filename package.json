@@ -28,6 +28,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Do not include *_test.go files into output results"
+                },
+                "goOutliner.enableDebugChannel": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Emit debug information into output channel"
                 }
             }
         },
@@ -107,7 +112,7 @@
     },
     "devDependencies": {
         "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
+        "vscode": "^1.23.0",
         "tslint": "^5.8.0",
         "@types/node": "^7.0.43",
         "@types/mocha": "^2.2.42"

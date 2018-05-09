@@ -9,6 +9,7 @@ All notable changes to the "go-outliner" extension will be documented in this fi
 - Tests/Benchmarks view added
     - Test/Benchmark specific function command added
     - Test/Benchmark all functions command added
+- `goOutliner.enableDebugChannel` configuration option for debug channel
 
 ## 0.0.7 - 2018-05-08
 ### Changed
