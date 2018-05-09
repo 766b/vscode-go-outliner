@@ -1,7 +1,6 @@
 
 'use strict';
 
-import cp = require('child_process');
 import fs = require('fs');
 
 export function semVer(a: string, b: string): number {
@@ -26,16 +25,4 @@ export function fileExists(filePath: string): boolean {
 	} catch (e) {
 		return false;
 	}
-}
-
-export function goOutlinerInstalled(): Promise<number> {
-    const minVersion = "Version 0.3.0";
-    return new Promise(resolve => {
-        cp.execFile("go-outliner", ["-version"], {}, (err, stdout, stderr) => {
-            if (err || stderr) {
-                return resolve(-2);
-            }
-            return resolve(semVer(stdout, minVersion));
-        });
-    });
 }

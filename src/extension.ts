@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import { AppExec, Terminal } from './app';
 import { Symbol } from './symbol';
+import { fileExists } from './util';
 
 export function activate(ctx: vscode.ExtensionContext) {
     const rootPath = vscode.workspace.rootPath;
@@ -15,9 +16,18 @@ export function activate(ctx: vscode.ExtensionContext) {
     ctx.subscriptions.push(terminal);
     ctx.subscriptions.push(registerCommands(terminal));
 
-    const app = new AppExec(rootPath, terminal);
+    const app = new AppExec(terminal);
+    ctx.subscriptions.push(app);
+
+    let activeEditor = vscode.window.activeTextEditor;
+    if(activeEditor) {
+        app.Reload(activeEditor.document.fileName);
+    } else {
+        app.Reload(rootPath);
+    }
 
     ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
+        terminal.Channel(`onDidSaveTextDocument: event`);
         app.Reload();
     }));
 
@@ -26,6 +36,10 @@ export function activate(ctx: vscode.ExtensionContext) {
         if (!e) {
             return;
         }
+        if (!fileExists(e.document.fileName)) {
+            return;
+        }
+        terminal.Channel(`onDidChangeActiveTextEditor: event; ${e.document.fileName}`);
         app.Reload(e.document.fileName);
     }));
 

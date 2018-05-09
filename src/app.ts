@@ -4,7 +4,8 @@ import { Symbol, ItemType } from './symbol';
 import { dirname } from 'path';
 import { Provider, ProviderType } from './provider';
 import path = require('path');
-import { fileExists } from './util';
+import { fileExists, semVer } from './util';
+import fs = require('fs');
 
 enum TerminalName {
     Testing = "Go Outliner: Test",
@@ -16,19 +17,18 @@ export class Terminal {
     private _terminalTesting: any;
     private _terminalBenchmarks: any;
     private _terminalChannel: any = undefined;
-    private _disposable: vscode.Disposable;
+    private _disposable: vscode.Disposable[] = Array<vscode.Disposable>();
     private _enableDebugChannel: boolean = false;
 
     constructor() {
         this._enableDebugChannel = vscode.workspace.getConfiguration('goOutliner').get('enableDebugChannel', false);
-        //TODO: Add to disposable
         vscode.workspace.onDidChangeConfiguration(() => {
-            this._enableDebugChannel = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
-            this.toggleChannel()
-        });
+            this._enableDebugChannel = vscode.workspace.getConfiguration('goOutliner').get('enableDebugChannel', false);
+            this.toggleChannel();
+        }, undefined, this._disposable);
         this.toggleChannel();
 
-        this._disposable = vscode.window.onDidCloseTerminal(x => {
+        vscode.window.onDidCloseTerminal(x => {
             switch (x.name) {
                 case TerminalName.Testing:
                     this._terminalTesting = undefined;
@@ -37,16 +37,15 @@ export class Terminal {
                     this._terminalBenchmarks = undefined;
                     break;
             }
-        });
+        }, undefined, this._disposable);
     }
 
     private toggleChannel() {
-        if(this._enableDebugChannel && !this._terminalChannel) {
+        if (this._enableDebugChannel && !this._terminalChannel) {
             this._terminalChannel = vscode.window.createOutputChannel(TerminalName.Channel);
             return;
         }
-
-        if(!this._enableDebugChannel && this._terminalChannel) {
+        if (!this._enableDebugChannel && this._terminalChannel) {
             this.TerminalChannel.dispose();
         }
     }
@@ -85,7 +84,8 @@ export class Terminal {
         if (!this._enableDebugChannel) {
             return;
         }
-        this.TerminalChannel.appendLine(msg);
+        let ts: Date = new Date();
+        this.TerminalChannel.appendLine(`${ts.toLocaleTimeString()}: ${msg}`);
     }
 
     public ChannelWithInformationMessage(msg: string) {
@@ -97,7 +97,10 @@ export class Terminal {
         this._terminalTesting.dispose();
         this._terminalBenchmarks.dispose();
         if (this._terminalChannel) { this._terminalChannel.dispose(); }
-        this._disposable.dispose();
+        
+        for (let i = 0; i < this._disposable.length; i++) {
+            this._disposable[i].dispose();
+        }
     }
 }
 
@@ -108,23 +111,19 @@ export class AppExec {
     public symbols: Symbol[] = Array<Symbol>();
     public binPathCache: Map<string, string> = new Map();
 
-    private excludeTestFiles: boolean = true;
+    private workspaceRoot: string = ''
 
-    constructor(private workspaceRoot: string, private terminal: Terminal) {
-        this.excludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
-        vscode.workspace.onDidChangeConfiguration(() => {
-            this.excludeTestFiles = vscode.workspace.getConfiguration('goOutliner').get('excludeTestFiles', true);
-            this._onDidChangeSymbols.fire();
-        });
+    constructor(private terminal: Terminal) {
         this.checkMissingTools();
-        this.getOutlineForWorkspace();
+        this.checkGoOutlinerVersion();
     }
 
     public Reload(filepath?: string) {
         if (filepath) {
-            let path = dirname(filepath);
-            if (this.workspaceRoot !== path) {
-                this.workspaceRoot = path;
+            let newWorkingDirectory = dirname(filepath);
+            if (this.workspaceRoot !== newWorkingDirectory) {
+                this.terminal.Channel(`Chaning working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`)
+                this.workspaceRoot = newWorkingDirectory;
                 this.symbols = Array<Symbol>();
                 this.getOutlineForWorkspace();
             }
@@ -138,11 +137,26 @@ export class AppExec {
         if (!bin) {
             return;
         }
-        cp.execFile(bin, [`${this.workspaceRoot}`], {}, (err, stdout, stderr) => {
-            this.symbols = JSON.parse(stdout).map(Symbol.fromObject);
-            this.symbols.sort((a, b) => a.label.localeCompare(b.label));
-            this.terminal.Channel(`Reading directory: ${this.workspaceRoot}; Results: ${this.symbols.length}`);
+        let dir = this.workspaceRoot;
+        fs.readdir(dir, (err, files) => {
+            if (err) {
+                this.terminal.Channel(`Reading directory: ${dir}; Error: ${err};`);
+                return;
+            }
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].toLowerCase().endsWith(".go")) {
+                    cp.execFile(bin, [`${dir}`], {}, (err, stdout, stderr) => {
+                        this.symbols = JSON.parse(stdout).map(Symbol.fromObject);
+                        this.symbols.sort((a, b) => a.label.localeCompare(b.label));
+                        this.terminal.Channel(`Reading directory: ${dir}; Results: ${this.symbols.length}`);
+                        this._onDidChangeSymbols.fire();
+                    });
+                    return;
+                }
+            }
+            this.symbols = Array<Symbol>();
             this._onDidChangeSymbols.fire();
+            this.terminal.Channel(`Reading directory: ${dir}; Contains no Go files`);
         });
     }
 
@@ -167,6 +181,27 @@ export class AppExec {
                 vscode.window.showInformationMessage(`Go Outliner: Missing: ${tool}`, "Install").then(x => {
                     if (x === "Install") {
                         this.installTool(tool);
+                    }
+                });
+            }
+        });
+    }
+
+    private checkGoOutlinerVersion() {
+        let bin = this.findToolFromPath("go-outliner");
+        if (bin === "") {
+            return;
+        }
+        const minVersion = "Version 0.3.0";
+        cp.execFile(bin, ["-version"], {}, (err, stdout, stderr) => {
+            if (err || stderr) {
+                this.terminal.Channel(`checkGoOutlinerVersion: ${err} ${stderr}`);
+            }
+            this.terminal.Channel(`Go-Outliner Version Check: Want (min): ${minVersion}; Have: ${stdout}`)
+            if (semVer(stdout, minVersion) === -1) {
+                vscode.window.showInformationMessage(`Go Outliner: Update go-outliner package?`, 'Update').then(x => {
+                    if(x === "Update") {
+                        this.installTool("go-outliner");
                     }
                 });
             }

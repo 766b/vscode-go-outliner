@@ -62,7 +62,7 @@ export class Symbol {
             case "func":
                 return getIcons("method");
             default:
-                return getIcons("method");
+                return undefined;
         }
     }
 

@@ -4,6 +4,7 @@ All notable changes to the "go-outliner" extension will be documented in this fi
 ## 0.1.7 - 2018-05-08
 ### Changed
 - Moved UI to separate tab
+- Removed `goOutliner.excludeTestFiles` configuration option
 
 ### Added
 - Tests/Benchmarks view added

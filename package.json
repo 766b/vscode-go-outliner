@@ -12,7 +12,7 @@
     ],
     "activationEvents": [
         "onLanguage:go",
-        "workspaceContains:*.go"
+        "workspaceContains:**/*.go"
     ],
     "main": "./out/extension",
     "repository": {
@@ -24,11 +24,6 @@
             "type": "object",
             "title": "Go Outliner Configuration",
             "properties": {
-                "goOutliner.excludeTestFiles": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Do not include *_test.go files into output results"
-                },
                 "goOutliner.enableDebugChannel": {
                     "type": "boolean",
                     "default": false,
@@ -49,8 +44,7 @@
             "go-outliner": [
                 {
                     "id": "outlinerExplorerView",
-                    "name": "Explorer",
-                    "when": "showGoOutlinerMainView"
+                    "name": "Explorer"
                 },
                 {
                     "id": "outlinerTestsView",
