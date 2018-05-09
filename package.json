@@ -2,7 +2,7 @@
     "name": "go-outliner",
     "displayName": "Go Outliner",
     "description": "Go code outline explorer",
-    "version": "0.0.10",
+    "version": "0.1.12",
     "publisher": "766b",
     "engines": {
         "vscode": "^1.23.0"
@@ -12,7 +12,7 @@
     ],
     "activationEvents": [
         "onLanguage:go",
-        "workspaceContains:*.go"
+        "workspaceContains:**/*.go"
     ],
     "main": "./out/extension",
     "repository": {
@@ -24,29 +24,75 @@
             "type": "object",
             "title": "Go Outliner Configuration",
             "properties": {
-                "goOutliner.excludeTestFiles": {
+                "goOutliner.enableDebugChannel": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Do not include *_test.go files into output results"
+                    "default": false,
+                    "description": "Display debug information into output channel"
                 }
             }
         },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "go-outliner",
+                    "title": "Go Outliner",
+                    "icon": "resources/icons/list-alt.svg"
+                }
+            ]
+        },
         "views": {
-            "explorer": [
+            "go-outliner": [
                 {
-                    "id": "typeView",
-                    "name": "Types",
-                    "when": "showGoOutlinerTypes"
+                    "id": "outlinerExplorerView",
+                    "name": "Explorer"
                 },
                 {
-                    "id": "funcView",
-                    "name": "Functions",
-                    "when": "showGoOutlinerFuncs"
+                    "id": "outlinerTestsView",
+                    "name": "Tests",
+                    "when": "showGoOutlinerTestsView"
                 },
                 {
-                    "id": "varView",
-                    "name": "Variables",
-                    "when": "showGoOutlinerVars"
+                    "id": "outlinerBenchmarksView",
+                    "name": "Benchmarks",
+                    "when": "showGoOutlinerBenchmarksView"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "goOutliner.TestAll",
+                "title": "Test All"
+            },
+            {
+                "command": "goOutliner.Test",
+                "title": "Test"
+            },
+            {
+                "command": "goOutliner.BenchmarkAll",
+                "title": "Benchmark All"
+            },
+            {
+                "command": "goOutliner.Benchmark",
+                "title": "Benchmark"
+            }
+        ],
+        "menus": {
+            "view/item/context": [
+                {
+                    "command": "goOutliner.Test",
+                    "when": "view == outlinerTestsView && viewItem == symbol"
+                },
+                {
+                    "command": "goOutliner.TestAll",
+                    "when": "view == outlinerTestsView"
+                },
+                {
+                    "command": "goOutliner.Benchmark",
+                    "when": "view == outlinerBenchmarksView && viewItem == symbol"
+                },
+                {
+                    "command": "goOutliner.BenchmarkAll",
+                    "when": "view == outlinerBenchmarksView"
                 }
             ]
         }

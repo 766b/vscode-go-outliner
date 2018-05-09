@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.12 - 2018-05-08
+### Changed
+- Moved UI to separate tab
+- Removed `goOutliner.excludeTestFiles` configuration option
+
+### Added
+- Tests/Benchmarks view added
+    - Test/Benchmark specific function command added
+    - Test/Benchmark all functions command added
+- `goOutliner.enableDebugChannel` configuration option for debug channel
+
 ## 0.0.10 - 2018-05-08
 ### Changed
 - Fixed typo.
