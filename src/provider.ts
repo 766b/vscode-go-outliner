@@ -11,13 +11,13 @@ export enum ProviderType {
 }
 
 export class Provider implements vscode.TreeDataProvider<Symbol> {
-    private _onDidChangeTreeData: vscode.EventEmitter<Symbol | undefined> = new vscode.EventEmitter<Symbol | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<Symbol | undefined> = this._onDidChangeTreeData.event;
+    private _onDidChangeTreeData: vscode.EventEmitter<undefined> = new vscode.EventEmitter<undefined>();
+    readonly onDidChangeTreeData: vscode.Event<undefined> = this._onDidChangeTreeData.event;
 
     private symbols: Symbol[] = new Array<Symbol>();
 
-    constructor(private providerType: ProviderType) {
-        this._onDidChangeTreeData.fire();
+    constructor(private providerType: ProviderType, private event: vscode.Event<Symbol[]>) {
+        this.event(x => this.update(x));
     }
 
     getTreeItem(element: Symbol): vscode.TreeItem {

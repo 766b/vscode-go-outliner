@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.15 - 2018-05-11
+### Change
+- On item selection cursor is not placed in the middle a screen, compared to the top of window as it was before.
+
 ## 0.1.14 - 2018-05-11
 ### Changed
 - Returned an option to extend main Explorer tab with Go symbols instead of having to go to a separate tab.

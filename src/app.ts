@@ -105,43 +105,88 @@ export class Terminal {
 }
 
 export class AppExec {
-    private _onDidChangeSymbols: vscode.EventEmitter<Symbol | undefined> = new vscode.EventEmitter<Symbol | undefined>();
-    readonly onDidChangeSymbols: vscode.Event<Symbol | undefined> = this._onDidChangeSymbols.event;
+    private _onDidChangeMain: vscode.EventEmitter<Symbol[]> = new vscode.EventEmitter<Symbol[]>();
+    readonly onDidChangeMain: vscode.Event<Symbol[]> = this._onDidChangeMain.event;
+    private _onDidChangeTests: vscode.EventEmitter<Symbol[]> = new vscode.EventEmitter<Symbol[]>();
+    readonly onDidChangeTests: vscode.Event<Symbol[]> = this._onDidChangeTests.event;
+    private _onDidChangeBenchmarks: vscode.EventEmitter<Symbol[]> = new vscode.EventEmitter<Symbol[]>();
+    readonly onDidChangeBenchmarks: vscode.Event<Symbol[]> = this._onDidChangeBenchmarks.event;
 
+    public terminal: Terminal = new Terminal();
+    public explorerExtension: vscode.Disposable | undefined = undefined;
     public symbols: Symbol[] = Array<Symbol>();
-    public binPathCache: Map<string, string> = new Map();
 
     private workspaceRoot: string = '';
-    private _disposable: vscode.Disposable[] = Array<vscode.Disposable>();
+    private binPathCache: Map<string, string> = new Map();
 
-    constructor(private terminal: Terminal) {
+    constructor(ctx: vscode.ExtensionContext) {
         this.checkMissingTools();
         this.checkGoOutlinerVersion();
-        this.ToggleExtendedView();
-        vscode.workspace.onDidChangeConfiguration(() => {
-            this.ToggleExtendedView();
-        }, undefined, this._disposable);
-    }
 
-    private ToggleExtendedView() {
+        // Get currect active text editor and use it's file path as root
+        let activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            this.Reload(activeEditor.document.fileName);
+        } else {
+            this.Reload(vscode.workspace.rootPath);
+        }
+
+        // In the event of file save, reload again
+        ctx.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => {
+            this.terminal.Channel(`onDidSaveTextDocument: Event`);
+            this.Reload();
+        }));
+
+        // Handle event when user opens a new file
+        ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => {
+            let e = vscode.window.activeTextEditor;
+            if (!e) {
+                return;
+            }
+            if (!fileExists(e.document.fileName)) {
+                return;
+            }
+            this.terminal.Channel(`onDidChangeActiveTextEditor: Event; ${e.document.fileName}`);
+            this.Reload(e.document.fileName);
+        }));
+
+        // Register Views
+        let mainProvider = new Provider(ProviderType.Main, this.onDidChangeMain);
+
+        // Extended Explorer View
         let extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false);
         this.terminal.Channel(`Extend default Explorer tab with outliner: ${extend}`);
-
-        if (extend) {
-            vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, true);
-        } else if (!extend) {
-            vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, false);
+        if(extend) {
+            this.explorerExtension = vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProvider);
+            vscode.commands.executeCommand('setContext', `enableExplorerExtension`, extend);
         }
+
+        vscode.workspace.onDidChangeConfiguration(x => { 
+            extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false); 
+            vscode.commands.executeCommand('setContext', `enableExplorerExtension`, extend);
+            
+            if(extend && !this.explorerExtension) {
+                this.explorerExtension = vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProvider);
+            } else {
+                if(this.explorerExtension) {
+                    this.explorerExtension.dispose();
+                }
+            }
+        }, undefined, ctx.subscriptions);
+
+        ctx.subscriptions.push(vscode.window.registerTreeDataProvider("outlinerExplorerView", mainProvider));
+        ctx.subscriptions.push(vscode.window.registerTreeDataProvider("outlinerTestsView", new Provider(ProviderType.Tests, this.onDidChangeTests)));
+        ctx.subscriptions.push(vscode.window.registerTreeDataProvider("outlinerBenchmarksView", new Provider(ProviderType.Benchmarks, this.onDidChangeBenchmarks)));
     }
 
-    public Reload(filepath?: string) {
-        if (filepath) {
-            let newWorkingDirectory: string = filepath;
-            if (fileExists(filepath)) {
-                newWorkingDirectory = dirname(filepath);
+    public Reload(filePath?: string) {
+        if (filePath) {
+            let newWorkingDirectory: string = filePath;
+            if (fileExists(filePath)) {
+                newWorkingDirectory = dirname(filePath);
             }
             if (this.workspaceRoot !== newWorkingDirectory) {
-                this.terminal.Channel(`Changing working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`)
+                this.terminal.Channel(`Changing working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`);
                 this.workspaceRoot = newWorkingDirectory;
                 this.symbols = Array<Symbol>();
                 this.getOutlineForWorkspace();
@@ -167,44 +212,22 @@ export class AppExec {
                     cp.execFile(bin, [`${dir}`], {}, (err, stdout, stderr) => {
                         this.symbols = JSON.parse(stdout).map(Symbol.fromObject);
                         this.symbols.sort((a, b) => a.label.localeCompare(b.label));
+                        this.emitSymbols();
                         this.terminal.Channel(`Reading directory: ${dir}; Results: ${this.symbols.length}`);
-                        this._onDidChangeSymbols.fire();
                     });
                     return;
                 }
             }
             this.symbols = Array<Symbol>();
-            this._onDidChangeSymbols.fire();
+            this.emitSymbols();
             this.terminal.Channel(`Reading directory: ${dir}; Contains no Go files`);
         });
     }
 
-    public MainProvider(): Provider {
-        let p = new Provider(ProviderType.Main);
-        this._disposable.push(this.onDidChangeSymbols(x => {
-            let symbols = this.symbols.filter(x => !x.isTestFile);
-            p.update(symbols);
-            if (vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false)) {
-                vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, symbols.length > 0);
-            }
-        }));
-        return p;
-    }
-
-    public TestsProvider(): Provider {
-        let p = new Provider(ProviderType.Tests);
-        this._disposable.push(this.onDidChangeSymbols(x => {
-            p.update(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Test")));
-        }));
-        return p;
-    }
-
-    public BenchmarksProvider(): Provider {
-        let p = new Provider(ProviderType.Benchmarks);
-        this._disposable.push(this.onDidChangeSymbols(x => {
-            p.update(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Benchmark")));
-        }));
-        return p;
+    private emitSymbols() {
+        this._onDidChangeMain.fire(this.symbols.filter(x => !x.isTestFile));
+        this._onDidChangeTests.fire(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Test")));
+        this._onDidChangeBenchmarks.fire(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Benchmark")));
     }
 
     private checkMissingTools() {
@@ -232,7 +255,7 @@ export class AppExec {
             if (err || stderr) {
                 this.terminal.Channel(`checkGoOutlinerVersion: ${err} ${stderr}`);
             }
-            this.terminal.Channel(`Go-Outliner Version Check: Want (min): ${minVersion}; Have: ${stdout}`)
+            this.terminal.Channel(`Go-Outliner Version Check: Want (min): ${minVersion}; Have: ${stdout}`);
             if (semVer(stdout, minVersion) === -1) {
                 vscode.window.showInformationMessage(`Go Outliner: Update go-outliner package?`, 'Update').then(x => {
                     if (x === "Update") {
@@ -307,9 +330,12 @@ export class AppExec {
     }
 
     public dispose() {
-        this._onDidChangeSymbols.dispose();
-        for (let i = 0; i < this._disposable.length; i++) {
-            this._disposable[i].dispose();
+        if(this.explorerExtension) {
+            this.explorerExtension.dispose();
         }
+        this.terminal.dispose();
+        this._onDidChangeMain.dispose();
+        this._onDidChangeTests.dispose();
+        this._onDidChangeBenchmarks.dispose();
     }
 }
