@@ -14,13 +14,20 @@ export class Provider implements vscode.TreeDataProvider<Symbol> {
     private _onDidChangeTreeData: vscode.EventEmitter<Symbol | undefined> = new vscode.EventEmitter<Symbol | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Symbol | undefined> = this._onDidChangeTreeData.event;
 
-    constructor(private symbols: Symbol[], private providerType: ProviderType) {
-        vscode.commands.executeCommand('setContext', `showGoOutliner${providerType}View`, symbols.length > 0);
+    private symbols: Symbol[] = new Array<Symbol>();
+
+    constructor(private providerType: ProviderType) {
         this._onDidChangeTreeData.fire();
     }
 
     getTreeItem(element: Symbol): vscode.TreeItem {
         return element;
+    }
+
+    update(symbols: Symbol[]) {
+        this.symbols = symbols;
+        vscode.commands.executeCommand('setContext', `showGoOutliner${this.providerType}View`, symbols.length > 0);
+        this._onDidChangeTreeData.fire();
     }
 
     rootItems(): Thenable<Symbol[]> {

@@ -43,11 +43,11 @@ export function activate(ctx: vscode.ExtensionContext) {
         app.Reload(e.document.fileName);
     }));
 
-    ctx.subscriptions.push(app.onDidChangeSymbols(() => {
-        vscode.window.registerTreeDataProvider('outlinerExplorerView', app.MainProvider());
-        vscode.window.registerTreeDataProvider('outlinerTestsView', app.TestsProvider());
-        vscode.window.registerTreeDataProvider('outlinerBenchmarksView', app.BenchmarksProvider());
-    }));
+    let mainProv = app.MainProvider();
+    ctx.subscriptions.push(vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProv));
+    ctx.subscriptions.push(vscode.window.registerTreeDataProvider('outlinerExplorerView', mainProv));
+    ctx.subscriptions.push(vscode.window.registerTreeDataProvider('outlinerTestsView', app.TestsProvider()));
+    ctx.subscriptions.push(vscode.window.registerTreeDataProvider('outlinerBenchmarksView', app.BenchmarksProvider()));
 }
 
 export function deactivate() {

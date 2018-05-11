@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.14 - 2018-05-11
+### Changed
+- Returned an option to extend main Explorer tab with Go symbols instead of having to go to a separate tab.
+
+### Added
+- `goOutliner.extendExplorerTab` configuration option
+
 ## 0.1.13 - 2018-05-09
 ### Changed
 - Fixed issue where working directory is incorrectly resolved to its parent folder.

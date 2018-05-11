@@ -97,7 +97,7 @@ export class Terminal {
         this._terminalTesting.dispose();
         this._terminalBenchmarks.dispose();
         if (this._terminalChannel) { this._terminalChannel.dispose(); }
-        
+
         for (let i = 0; i < this._disposable.length; i++) {
             this._disposable[i].dispose();
         }
@@ -111,21 +111,37 @@ export class AppExec {
     public symbols: Symbol[] = Array<Symbol>();
     public binPathCache: Map<string, string> = new Map();
 
-    private workspaceRoot: string = ''
+    private workspaceRoot: string = '';
+    private _disposable: vscode.Disposable[] = Array<vscode.Disposable>();
 
     constructor(private terminal: Terminal) {
         this.checkMissingTools();
         this.checkGoOutlinerVersion();
+        this.ToggleExtendedView();
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this.ToggleExtendedView();
+        }, undefined, this._disposable);
+    }
+
+    private ToggleExtendedView() {
+        let extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false);
+        this.terminal.Channel(`Extend default Explorer tab with outliner: ${extend}`);
+
+        if (extend) {
+            vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, true);
+        } else if (!extend) {
+            vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, false);
+        }
     }
 
     public Reload(filepath?: string) {
         if (filepath) {
             let newWorkingDirectory: string = filepath;
-            if(fileExists(filepath)) {
+            if (fileExists(filepath)) {
                 newWorkingDirectory = dirname(filepath);
             }
             if (this.workspaceRoot !== newWorkingDirectory) {
-                this.terminal.Channel(`Chaning working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`)
+                this.terminal.Channel(`Changing working directory from ${this.workspaceRoot} to ${newWorkingDirectory}`)
                 this.workspaceRoot = newWorkingDirectory;
                 this.symbols = Array<Symbol>();
                 this.getOutlineForWorkspace();
@@ -164,15 +180,31 @@ export class AppExec {
     }
 
     public MainProvider(): Provider {
-        return new Provider(this.symbols.filter(x => !x.isTestFile), ProviderType.Main);
+        let p = new Provider(ProviderType.Main);
+        this._disposable.push(this.onDidChangeSymbols(x => {
+            let symbols = this.symbols.filter(x => !x.isTestFile);
+            p.update(symbols);
+            if (vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false)) {
+                vscode.commands.executeCommand('setContext', `showGoOutlinerExtendedExplorerView`, symbols.length > 0);
+            }
+        }));
+        return p;
     }
 
     public TestsProvider(): Provider {
-        return new Provider(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Test")), ProviderType.Tests);
+        let p = new Provider(ProviderType.Tests);
+        this._disposable.push(this.onDidChangeSymbols(x => {
+            p.update(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Test")));
+        }));
+        return p;
     }
 
     public BenchmarksProvider(): Provider {
-        return new Provider(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Benchmark")), ProviderType.Benchmarks);
+        let p = new Provider(ProviderType.Benchmarks);
+        this._disposable.push(this.onDidChangeSymbols(x => {
+            p.update(this.symbols.filter(x => x.isTestFile && x.type === ItemType.Func && x.label.startsWith("Benchmark")));
+        }));
+        return p;
     }
 
     private checkMissingTools() {
@@ -203,7 +235,7 @@ export class AppExec {
             this.terminal.Channel(`Go-Outliner Version Check: Want (min): ${minVersion}; Have: ${stdout}`)
             if (semVer(stdout, minVersion) === -1) {
                 vscode.window.showInformationMessage(`Go Outliner: Update go-outliner package?`, 'Update').then(x => {
-                    if(x === "Update") {
+                    if (x === "Update") {
                         this.installTool("go-outliner");
                     }
                 });
@@ -276,5 +308,8 @@ export class AppExec {
 
     public dispose() {
         this._onDidChangeSymbols.dispose();
+        for (let i = 0; i < this._disposable.length; i++) {
+            this._disposable[i].dispose();
+        }
     }
 }

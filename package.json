@@ -2,7 +2,7 @@
     "name": "go-outliner",
     "displayName": "Go Outliner",
     "description": "Go code outline explorer",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "publisher": "766b",
     "engines": {
         "vscode": "^1.23.0"
@@ -28,6 +28,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Display debug information into output channel"
+                },
+                "goOutliner.extendExplorerTab": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Extend default Explorer tab with additional section containing Go symbols"
                 }
             }
         },
@@ -55,6 +60,13 @@
                     "id": "outlinerBenchmarksView",
                     "name": "Benchmarks",
                     "when": "showGoOutlinerBenchmarksView"
+                }
+            ],
+            "explorer": [
+                {
+                    "id": "outlinerExplorerExtensionView",
+                    "name": "Go Outliner",
+                    "when": "showGoOutlinerExtendedExplorerView"
                 }
             ]
         },
