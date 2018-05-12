@@ -156,19 +156,19 @@ export class AppExec {
         // Extended Explorer View
         let extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false);
         this.terminal.Channel(`Extend default Explorer tab with outliner: ${extend}`);
-        if(extend) {
+        if (extend) {
             this.explorerExtension = vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProvider);
             vscode.commands.executeCommand('setContext', `enableExplorerExtension`, extend);
         }
 
-        vscode.workspace.onDidChangeConfiguration(x => { 
-            extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false); 
+        vscode.workspace.onDidChangeConfiguration(x => {
+            extend = vscode.workspace.getConfiguration('goOutliner').get('extendExplorerTab', false);
             vscode.commands.executeCommand('setContext', `enableExplorerExtension`, extend);
-            
-            if(extend && !this.explorerExtension) {
+
+            if (extend && !this.explorerExtension) {
                 this.explorerExtension = vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProvider);
             } else {
-                if(this.explorerExtension) {
+                if (this.explorerExtension) {
                     this.explorerExtension.dispose();
                 }
             }
@@ -330,7 +330,7 @@ export class AppExec {
     }
 
     public dispose() {
-        if(this.explorerExtension) {
+        if (this.explorerExtension) {
             this.explorerExtension.dispose();
         }
         this.terminal.dispose();

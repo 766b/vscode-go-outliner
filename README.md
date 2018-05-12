@@ -10,6 +10,10 @@ Go-Outliner package needs to be installed for this extension to work
 
     go get -u github.com/766b/go-outliner
 
+## Keyboard Shortcuts
+
+By default extension keybinding is unassigned. If you want to assign your own keybinding for Go Outliner, just open your `Keyboard Shortcuts` (`Ctrl`+`K` `Ctrl`+`S`), search for `workbench.view.extension.go-outliner` and assign prefered shortcut.
+
 ## Extension Settings
 
 This extension contributes the following settings:

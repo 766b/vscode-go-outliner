@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.16 - 2018-05-12
+### Changed
+- Updated `README.md` regarding extension shortcut.
+
 ## 0.1.15 - 2018-05-11
 ### Change
 - On item selection cursor is not placed in the middle a screen, compared to the top of window as it was before.
