@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.18 - 2018-06-09
+### Changed
+- Changed the way HOME variable is handled
+
 ## 0.1.17 - 2018-06-08
 ### Changed
 - Modified the way extension looks up binaries.

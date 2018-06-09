@@ -307,7 +307,7 @@ export class AppExec {
             if(!env) {
                 return;
             }
-            if(process.platform === 'darwin' || x === 'HOME') {
+            if(x === 'HOME') {
                 paths.push(path.join(env, "go"));
             } else {
                 paths.push(...env.split(path.delimiter));
