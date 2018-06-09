@@ -290,6 +290,7 @@ export class AppExec {
                 return;
             }
             this.terminal.Channel(`OK: ${stdout}`);
+            this.Reload();
         });
     }
 
