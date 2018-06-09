@@ -300,30 +300,36 @@ export class AppExec {
         }
 
         let toolFileName = (process.platform === 'win32') ? `${tool}.exe` : tool;
-        let pathEnv = process.env['PATH'] || (process.platform === 'win32' ? process.env['Path'] : null);
-        let goPathEnv = process.env['GOPATH'];
-        let macHomeEnv = process.env['HOME'];
 
         let paths: string[] = [];
-        if (pathEnv !== undefined) {
-            paths.push(...pathEnv.split(path.delimiter));
-        }
-        if (goPathEnv !== undefined) {
-            paths.push(...goPathEnv.split(path.delimiter));
-        }
-        if (macHomeEnv !== undefined) {
-            paths.push(path.join(macHomeEnv, "go"));
-        }
+        ['GOPATH', 'GOROOT', 'HOME', (process.platform === 'win32' ? 'Path' : 'PATH')].forEach(x => {
+            let env = process.env[x];
+            if(!env) {
+                return;
+            }
+            if(process.platform === 'darwin') {
+                paths.push(path.join(env, "go"));
+            } else {
+                paths.push(...env.split(path.delimiter));
+            }
+        });
 
         for (let i = 0; i < paths.length; i++) {
             let dirs = paths[i].split(path.sep);
-            let appendBin = dirs[dirs.length - 1].toLowerCase() !== "bin";
-            let filePath = path.join(paths[i], appendBin ? 'bin' : '', toolFileName);
-            if (fileExists(filePath)) {
-                this.terminal.Channel(`Found "${tool}" at ${filePath}`);
-                this.binPathCache.set(tool, filePath);
-                return filePath;
-            }
+
+            let lookUps:  string[] = [path.join(paths[i], toolFileName)];
+            if(dirs[dirs.length - 1].toLowerCase() !== "bin") {
+                lookUps.push( path.join(paths[i], 'bin', toolFileName))
+            }   
+            for (let i = 0; i < lookUps.length; i++) {
+                const filePath = lookUps[i];
+                if (fileExists(filePath)) {
+                    this.terminal.Channel(`Found "${tool}" at ${filePath}`);
+                    this.binPathCache.set(tool, filePath);
+                    return filePath;
+                }
+                
+            }                    
         }
         this.terminal.Channel(`Could not find "${tool}"`);
         return "";

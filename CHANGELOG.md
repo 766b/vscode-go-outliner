@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.17 - 2018-06-08
+### Changed
+- Modified the way extension looks up binaries.
+
 ## 0.1.16 - 2018-05-12
 ### Changed
 - Updated `README.md` regarding extension shortcut.
