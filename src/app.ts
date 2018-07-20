@@ -167,11 +167,7 @@ export class AppExec {
 
             if (extend && !this.explorerExtension) {
                 this.explorerExtension = vscode.window.registerTreeDataProvider('outlinerExplorerExtensionView', mainProvider);
-            } else {
-                if (this.explorerExtension) {
-                    this.explorerExtension.dispose();
-                }
-            }
+            } 
         }, undefined, ctx.subscriptions);
 
         ctx.subscriptions.push(vscode.window.registerTreeDataProvider("outlinerExplorerView", mainProvider));
