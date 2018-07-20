@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.20 - 2018-07-20
+### Changed
+- Fixed issue where VS Code will throw error regarding `outlinerExplorerExtensionView` view not being registered.
+
 ## 0.1.19 - 2018-06-09
 ### Changed
 - Extension will now correctly update its UI after installing missing outliner binary.
