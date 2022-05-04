@@ -8,7 +8,7 @@ Go Outliner adds activity bar icon for code outline (Go projects only) to VS Cod
 
 Go-Outliner package needs to be installed for this extension to work
 
-    go get -u github.com/766b/go-outliner
+    go install github.com/766b/go-outliner
 
 ## Keyboard Shortcuts
 
