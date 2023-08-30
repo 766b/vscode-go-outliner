@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to the "go-outliner" extension will be documented in this file.
 
+## 0.1.21 - 2023-08-30
+### Changed 
+- Changed from get `go -u `to `go install` command [https://github.com/766b/vscode-go-outliner/pull/16/]
+  
 ## 0.1.20 - 2018-07-20
 ### Changed
 - Fixed issue where VS Code will throw error regarding `outlinerExplorerExtensionView` view not being registered.
