@@ -272,7 +272,7 @@ export class AppExec {
         let args: string[] = [];
         switch (name) {
             case "go-outliner":
-                args = ["get", "-u", "github.com/766b/go-outliner"];
+                args = ["install", "github.com/766b/go-outliner@latest"];
                 break;
             default:
                 this.terminal.Channel("Trying to install unknown tool: " + name);
